@@ -17,7 +17,7 @@ Projecy currently has the following features:
     - Currently the specific instruments are: Grand Piano, Stel Drums and Acoustic Guitar
  
 TODO:
-  - Make it possible to set master Volume for each instrument to be able to mix everything correctly (remove Reverb setting per instrument should be mapped to MIDI channel)
+  - ** Make it possible to set master Volume for each instrument to be able to mix everything correctly (remove Reverb setting per instrument should be mapped to MIDI channel)
   - Map Panning to MIDI signals for each MIDI-channel
   - Map Reverb settings to that MIDI effect for ecah channel
   - Implement MIDI Drums
