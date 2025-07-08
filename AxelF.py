@@ -7,7 +7,7 @@ from scipy.signal import butter, lfilter
 from mido import MidiFile
 from collections import defaultdict
 from instruments import INSTRUMENT_PRESETS
-
+from MidiInstrumentsSpec import MidiInstruments
 # ================== Settings ==================
 sample_rate = 44100
 TEMPO_BPM = 110
@@ -15,9 +15,8 @@ BEATS_PER_SECOND = TEMPO_BPM / 60
 
 DEFAULT_INSTRUMENT = 0  # fallback if no program_change
 
-waveform_type_melody = 'triangle'
-waveform_type_bass = 'triangle'
-
+#waveform_type_melody = 'triangle'
+#waveform_type_bass = 'triangle'
 
 # Channel → pan value (0.0 = Left, 1.0 = Right)
 channel_pan = {}
@@ -26,7 +25,7 @@ channel_pan = {}
 channel_volume = defaultdict(lambda: 1.0)  # Default volume is 1.0 (full)
 channel_expression = defaultdict(lambda: 1.0)  # Default expression is 1.0 (velocity)
 
-channel_pan[0] = 0.5  # Left
+#channel_pan[0] = 0.5  # Left
 ##channel_pan[1] = 0.8  # Right
 ##channel_pan[2] = 0.8  # Right
 ##channel_pan[3] = 0.8  # Right
@@ -124,9 +123,9 @@ def midi_to_events(midi_path, allowed_channels=None):
                 continue
 
         if msg.type == 'program_change':
-            #if channel_program.get(msg.channel) != msg.program:
-                #instrument_name = INSTRUMENT_PRESETS.get(msg.program, ("unknown",))[6]
-                #print(f"Channel {msg.channel + 1} selected instrument: {instrument_name}")
+            if channel_program.get(msg.channel) != msg.program:
+                instrument_name = INSTRUMENT_PRESETS.get(msg.program, ("unknown",))[6]
+                print(f"Channel {msg.channel + 1} selected instrument: {instrument_name}")
             channel_program[msg.channel] = msg.program
         elif msg.type == 'control_change' and msg.control == 7:
             channel_volume[msg.channel] = msg.value / 127.0 
@@ -190,133 +189,49 @@ def generate_wave(freq, duration, sr, wave_type='square', a_sec=0.02, d_sec=0.05
 
     return shaped.astype(np.float32)
 
-def generate_wave_steeldrum(freq, duration, sr, wave_type='triangle', a_sec=0.005, d_sec=0.12, s_level=0.3, r_sec=0.25):
-    samples = int(sr * duration)
-    t = np.linspace(0, duration, samples, False)
-
-    base = np.sin(2 * np.pi * freq * t)  # Fundamental
-    overtone1 = 0.2 * np.sin(2 * np.pi * freq * 2.01 * t)  # Slight detuned 2nd harmonic
-    overtone2 = 0.1 * np.sin(2 * np.pi * freq * 3.9 * t)    # Almost 4th harmonic
-
-    wave = base + overtone1 + overtone2
-    wave /= np.max(np.abs(wave))  # normalize
-
-    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
-    return (wave * envelope).astype(np.float32)
-
-# Optional: simulate sympathetic resonance from adjacent keys
-def sympathetic_resonance(freq, t, strength=0.01):
-    # Create quiet neighboring tones that share harmonics
-    neighbor_freqs = [freq * r for r in [0.5, 0.75, 1.5, 2.0]]
-    res_wave = np.zeros_like(t)
-    for nf in neighbor_freqs:
-        res_wave += np.sin(2 * np.pi * nf * t)
-    return strength * res_wave
-
-
-def generate_wave_piano(freq, duration, sr, a_sec=0.005, d_sec=0.2, s_level=0.4, r_sec=0.4):
-    samples = int(sr * duration)
-    t = np.linspace(0, duration, samples, False)
-
-    # Gentle harmonic mix to avoid buildup
-    wave = (
-        0.8 * np.sin(2 * np.pi * freq * t) +              # Fundamental
-        0.4 * np.sin(2 * np.pi * freq * 2 * t) +          # 2nd harmonic
-        0.25 * np.sin(2 * np.pi * freq * 3 * t) +         # 3rd harmonic
-        0.15 * np.sin(2 * np.pi * freq * 4.01 * t) +      # Slightly detuned 4th harmonic
-        0.1 * np.sin(2 * np.pi * freq * 5.01 * t)         # Slightly detuned 5th harmonic
-    )
-
-    # Natural string damping
-    damping = np.exp(-3.5 * t)
-    wave *= damping
-    # Normalize per note
-    peak = np.max(np.abs(wave))
-    if peak > 0:
-        wave = wave / peak
-
-    # ADSR
-    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
-    shaped = wave * envelope
-
-    # Optional soft limiting (tame any slight overshoots)
-    shaped = np.tanh(shaped * 1) #1.5 be default
-    return shaped.astype(np.float32)
-
-def generate_stereo_piano(freq, duration, sr):
-    left = generate_wave_piano_better(freq * 0.997, duration, sr)
-    right = generate_wave_piano_better(freq * 1.003, duration, sr)
-    return np.stack([left, right], axis=-1)
-
-def dynamic_lowpass(wave, sr, t):
-    # Very crude time-dependent lowpass: cutoff drops over time
-    out = np.zeros_like(wave)
-    step = sr // 50
-    for i in range(0, len(wave), step):
-        t_pos = t[i] if i < len(t) else t[-1]
-        cutoff = 8000 - 7000 * (t_pos / t[-1])  # drops from 8kHz to 1kHz
-        b, a = butter(2, cutoff / (sr / 2), btype='low')
-        chunk = wave[i:i+step]
-        out[i:i+step] = lfilter(b, a, chunk)
-    return out
-
-def generate_wave_piano_better(freq, duration, sr, a_sec=0.005, d_sec=0.3, s_level=0.5, r_sec=0.5,velocity=0.8):
-    samples = int(sr * duration)
-    t = np.linspace(0, duration, samples, False)
-    
-    # Inharmonicity factor (approximated for acoustic grand)
-    beta = 0.00015  # Slight stretch of upper partials
-    
-    harmonics = [  # (multiplier, amplitude)
-        (1.0, 0.8),
-        (2.005, 0.5),
-        (3.01, 0.3),
-        (4.02, 0.2),
-        (5.03, 0.15),
-        (6.06, 0.12),
-        (7.1, 0.08),
-        (8.15, 0.05),
-    ]
-    
-    # Build waveform with stretched partials
-    wave = np.zeros_like(t)
-    for i, (mult, amp) in enumerate(harmonics):
-        brightness = 1.0 + 0.5 * (velocity - 0.5) * (mult - 1)
-        inharm_freq = freq * mult * (1 + beta * mult**2)
-        wave += amp * brightness * np.sin(2 * np.pi * inharm_freq * t)
-    
-    #for i, (mult, amp) in enumerate(harmonics):
-    #    inharm_freq = freq * mult * (1 + beta * mult**2)
-    #    wave += amp * np.sin(2 * np.pi * inharm_freq * t)
-
-    # Apply dynamic damping curve: high-freq components fade faster
-    damping = np.exp(-2.8 * t) * (1.0 - 0.15 * t)
-    wave *= damping
-    wave += sympathetic_resonance(freq, t) # add extra resonance
-    
-    # Hammer noise transient: simulate initial percussive strike
-    hammer_noise = 0.05 * np.random.randn(len(t))
-    hammer_env = np.exp(-200 * t)
-    wave += hammer_noise * hammer_env
-    
-    #attack_shape = np.tanh(20 * t)  # Sharper initial ramp
-    #wave *= attack_shape
-
-    # Normalize
-    peak = np.max(np.abs(wave))
-    if peak > 0:
-        wave /= peak
-
-    # ADSR envelope
-    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
-    shaped = wave * envelope
-
-    # Final soft saturation
-    #shaped = dynamic_lowpass(shaped, sr, t)
-    shaped = np.tanh(shaped * 1.2)
-    
-    return shaped.astype(np.float32)
-
+##def generate_wave_steeldrum(freq, duration, sr, wave_type='triangle', a_sec=0.005, d_sec=0.12, s_level=0.3, r_sec=0.25):
+##    samples = int(sr * duration)
+##    t = np.linspace(0, duration, samples, False)
+##
+##    base = np.sin(2 * np.pi * freq * t)  # Fundamental
+##    overtone1 = 0.2 * np.sin(2 * np.pi * freq * 2.01 * t)  # Slight detuned 2nd harmonic
+##    overtone2 = 0.1 * np.sin(2 * np.pi * freq * 3.9 * t)    # Almost 4th harmonic
+##
+##    wave = base + overtone1 + overtone2
+##    wave /= np.max(np.abs(wave))  # normalize
+##
+##    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
+##    return (wave * envelope).astype(np.float32)
+##
+##def generate_wave_piano(freq, duration, sr, a_sec=0.005, d_sec=0.2, s_level=0.4, r_sec=0.4):
+##    samples = int(sr * duration)
+##    t = np.linspace(0, duration, samples, False)
+##
+##    # Gentle harmonic mix to avoid buildup
+##    wave = (
+##        0.8 * np.sin(2 * np.pi * freq * t) +              # Fundamental
+##        0.4 * np.sin(2 * np.pi * freq * 2 * t) +          # 2nd harmonic
+##        0.25 * np.sin(2 * np.pi * freq * 3 * t) +         # 3rd harmonic
+##        0.15 * np.sin(2 * np.pi * freq * 4.01 * t) +      # Slightly detuned 4th harmonic
+##        0.1 * np.sin(2 * np.pi * freq * 5.01 * t)         # Slightly detuned 5th harmonic
+##    )
+##
+##    # Natural string damping
+##    damping = np.exp(-3.5 * t)
+##    wave *= damping
+##
+##    # Normalize per note
+##    peak = np.max(np.abs(wave))
+##    if peak > 0:
+##        wave = wave / peak
+##
+##    # ADSR
+##    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
+##    shaped = wave * envelope
+##
+##    # Optional soft limiting (tame any slight overshoots)
+##    shaped = np.tanh(shaped * 1) #1.5 be default
+##    return shaped.astype(np.float32)
 
 def adsr_envelope(total_samples, sr, a_sec=0.02, d_sec=0.05, s_level=0.4, r_sec=0.08):
     a_len = int(a_sec * sr)
@@ -350,9 +265,8 @@ def synthesize_and_pan_channels(events_by_channel, note_freqs, sample_rate, seco
     volume_scale = 1.0 / max(4, len(events_by_channel))  # avoid clipping when many channels
 
     for ch, ch_events in events_by_channel.items():
-        waveform = waveform_type_melody
         audio, _ = synthesize_normalized_track(
-            ch_events, note_freqs, waveform, sample_rate, seconds_per_beat
+            ch_events, note_freqs, sample_rate, seconds_per_beat
         )
         audio *= volume_scale
         pan = get_channel_pan(ch)
@@ -369,7 +283,7 @@ def synthesize_and_pan_channels(events_by_channel, note_freqs, sample_rate, seco
     mix = np.clip(mix, -1.0, 1.0)
     return mix
 
-def synthesize_normalized_track(events, note_freqs, default_waveform, sample_rate, seconds_per_beat):
+def synthesize_normalized_track(events, note_freqs, sample_rate, seconds_per_beat):
     if not events:
         return np.zeros(1, dtype=np.float32), get_channel_pan(0)  # default mono + pan
 
@@ -384,7 +298,7 @@ def synthesize_normalized_track(events, note_freqs, default_waveform, sample_rat
         channel = event.get('channel', 0)
         used_channels.add(channel)
 
-        waveform, a, d, s, r, reverb_amount, name = INSTRUMENT_PRESETS.get(program,INSTRUMENT_PRESETS[DEFAULT_INSTRUMENT])
+        waveform, a, d, s, r, mix_vol, name = INSTRUMENT_PRESETS.get(program,INSTRUMENT_PRESETS[DEFAULT_INSTRUMENT])
         for note in event['notes']:
             freq = note_freqs.get(note, get_note_frequency(note))
             if freq == 0.0:
@@ -393,9 +307,14 @@ def synthesize_normalized_track(events, note_freqs, default_waveform, sample_rat
             start_sample = int(event['start_beats'] * seconds_per_beat * sample_rate)
             duration = event['duration_beats'] * seconds_per_beat
             if program == 0:  # Acoustic Grand Piano
-                wave = generate_wave_piano_better(freq, duration, sample_rate, a, d, s, r)
-            elif program == 114: # Steel Drum
-                wave = generate_wave_steeldrum(freq, duration, sample_rate, a, d, s, r)
+                wave = MidiInstruments.generate_wave_piano(freq, duration, sample_rate, a, d, s, r)
+            #elif program == 19: # Church Organ
+            #    wave = MidiInstruments.generate_church_organ(freq, duration, sample_rate)
+            elif program == 24: # Acoustic Guitar (nylon)
+                #wave = MidiInstruments.generate_karplus_strong_guitar(freq, duration, sample_rate)
+                wave = MidiInstruments.generate_wave_nylon_guitar(freq, duration, sample_rate, a, d, s, r)
+            elif program == 114: # Steel Drums
+                wave = MidiInstruments.generate_wave_steeldrum(freq, duration, sample_rate, a, d, s, r)
             else:
                 wave = generate_wave(freq, duration, sample_rate, waveform, a, d, s, r)
             
@@ -406,9 +325,10 @@ def synthesize_normalized_track(events, note_freqs, default_waveform, sample_rat
                 wave = wave[:len(track) - start_sample]
 
             volume = event.get('volume', 1.0)
+            
             volume = max(0.0, min(1.0, volume)) # for safety
             voice_gain = 0.2  # lower gain per voice, adjust as needed
-            track[start_sample:start_sample + len(wave)] += wave * volume * voice_gain
+            track[start_sample:start_sample + len(wave)] += wave * volume * voice_gain * mix_vol
 
     # If multiple channels used, average their pans
     avg_pan = sum(get_channel_pan(ch) for ch in used_channels) / len(used_channels)
@@ -516,7 +436,7 @@ def reverb_stereo(signal, sample_rate=44100, decay=0.25, delays_ms=[50,113,179,2
 def mix_voices_stereo(
     melody_stereo, drums_stereo,
     sr,
-    melody_volume=1.0, melody_reverb=False,
+    melody_volume=1.0, melody_reverb=True,
     drums_volume=1.0, drums_reverb=False
 ):
     length = max(
@@ -582,9 +502,11 @@ drum_track = [
 ##    {'notes': 'kick', 'start': [4], 'length': 4}
 ##]
 
-#midi_events = midi_to_events("UnderTheSea.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-midi_events = midi_to_events("beethoven_opus10_2_format0.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-
+midi_events = midi_to_events("UnderTheSea.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+#midi_events = midi_to_events("classic.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+#midi_events = midi_to_events("Beethoven_Bagatelle_No1_Op119.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+#midi_events = midi_to_events("OrganConcerto.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+#midi_events = midi_to_events("mendelssohn-wedding-march.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
 normalized_melody = midi_events
 #normalized_melody = normalize_events(melody_track)
 
@@ -592,7 +514,7 @@ normalized_melody = midi_events
 
 # Update note_freqs with both string and int note support
 note_freqs = {}
-all_events = normalized_melody # + normalized_bass
+all_events = normalized_melody# + normalized_bass
 for event in all_events:
     for note in event['notes']:
         if note not in note_freqs:
@@ -600,7 +522,6 @@ for event in all_events:
             
 melody_events_by_channel = group_events_by_channel(normalized_melody)
 melody_stereo = synthesize_and_pan_channels(melody_events_by_channel, note_freqs, sample_rate, 1 / BEATS_PER_SECOND)
-#generate_stereo_piano(melody_events_by_channel, note_freqs, sample_rate)
 
 normalized_drums = normalize_events(drum_track)
 drum_stereo = generate_drum_track_stereo(normalized_drums, 1 / BEATS_PER_SECOND, sample_rate)
