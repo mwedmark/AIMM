@@ -8,23 +8,23 @@ class MidiInstruments:
         b, a = butter(2, cutoff / (sr / 2), btype='low')
         return lfilter(b, a, wave)
 
+#     @staticmethod
+#     def adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec):
+#         a_samples = int(sr * a_sec)
+#         d_samples = int(sr * d_sec)
+#         r_samples = int(sr * r_sec)
+#         s_samples = samples - (a_samples + d_samples + r_samples)
+#         if s_samples < 0:
+#             s_samples = 0
+# 
+#         a_env = np.linspace(0, 1.0, a_samples, False)
+#         d_env = np.linspace(1.0, s_level, d_samples, False)
+#         s_env = np.full(s_samples, s_level)
+#         r_env = np.linspace(s_level, 0, r_samples, False)
+#         return np.concatenate((a_env, d_env, s_env, r_env))[:samples]
+#     
     @staticmethod
-    def adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec):
-        a_samples = int(sr * a_sec)
-        d_samples = int(sr * d_sec)
-        r_samples = int(sr * r_sec)
-        s_samples = samples - (a_samples + d_samples + r_samples)
-        if s_samples < 0:
-            s_samples = 0
-
-        a_env = np.linspace(0, 1.0, a_samples, False)
-        d_env = np.linspace(1.0, s_level, d_samples, False)
-        s_env = np.full(s_samples, s_level)
-        r_env = np.linspace(s_level, 0, r_samples, False)
-        return np.concatenate((a_env, d_env, s_env, r_env))[:samples]
-    
-    @staticmethod
-    def generate_wave_steeldrum(freq, duration, sr, wave_type='triangle', a_sec=0.005, d_sec=0.12, s_level=0.3, r_sec=0.25):
+    def generate_wave_steeldrum(freq, duration, sr, a_sec=0.005, d_sec=0.12, s_level=0.3, r_sec=0.25):
         samples = int(sr * duration)
         t = np.linspace(0, duration, samples, False)
 
