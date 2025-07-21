@@ -18,13 +18,13 @@ Projecy currently has the following features:
  
 TODO:
   - ** Make it possible to set master Volume for each instrument to be able to mix everything correctly (remove Reverb setting per instrument should be mapped to MIDI channel)
-  - Map Panning to MIDI signals for each MIDI-channel
-  - Map Reverb settings to that MIDI effect for ecah channel
-  - Implement MIDI Drums
-  - Add support for Wavetable Synthesis. Either simple format with its own fileformat or directl support for SF2 files.
+  - ** Map Panning to MIDI signals for each MIDI-channel
+  - ** Map Reverb settings to that MIDI effect for ecah channel
+  - ** Implement MIDI Drums
+  - Add support for Wavetable Synthesis. Either simple format with its own fileformat or direct support for SF2 files.
   - Add more effects, start with Chorus and map that effect against MIDI chorus.
   - Add Delay effect
-  - Trouble-shoot the Organ files that still are quiet al though they have sound in other MIDI players.
+  - Trouble-shoot the Organ files that still are quiet although they have sound in other MIDI players.
   - Add real-time playing/mixing of WAV files
   - Add mapping to MIDI to be able to play directly with our sounds.
   - Add map to MIDI controllers to be able to play around with sound settings using MIDI panels (ADSR, waveform and more) while playing

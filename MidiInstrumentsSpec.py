@@ -43,25 +43,24 @@ class MidiInstruments:
         samples = int(sr * duration)
         t = np.linspace(0, duration, samples, False)
 
-        wave = (
-            0.8 * np.sin(2 * np.pi * freq * t) +
-            0.4 * np.sin(2 * np.pi * freq * 2 * t) +
-            0.25 * np.sin(2 * np.pi * freq * 3 * t) +
-            0.15 * np.sin(2 * np.pi * freq * 4.01 * t) +
-            0.1 * np.sin(2 * np.pi * freq * 5.01 * t)
+        wave = (  
+            0.2 * np.sin(2 * np.pi * freq * t) +
+            0.1 * np.sin(2 * np.pi * freq * 2 * t) +
+            0.0625 * np.sin(2 * np.pi * freq * 3 * t) +
+            0.0375 * np.sin(2 * np.pi * freq * 4.01 * t) +
+            0.025 * np.sin(2 * np.pi * freq * 5.01 * t)
         )
-
-        damping = np.exp(-3.5 * t)
-        wave *= damping
 
         peak = np.max(np.abs(wave))
         if peak > 0:
             wave = wave / peak
+            
+        damping = np.exp(-3.5 * t)
+        wave *= damping
 
         envelope = MidiInstruments.adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
         shaped = wave * envelope
-
-        shaped = np.tanh(shaped * 1.0)  # Optional soft limiter
+        shaped = np.tanh(shaped * 0.8) # Optional soft limiter        
         return shaped.astype(np.float32)
 
     @staticmethod
@@ -189,6 +188,62 @@ class MidiInstruments:
         output = np.tanh(output * 1.2)
 
         return output.astype(np.float32)
+
+    @staticmethod
+    def synth_drum_stereo(drum_type, duration, pan=0.5, velocity=100, sample_rate=44100):
+        length = int(sample_rate * duration)
+        t = np.linspace(0, duration, length, False)
+        
+         # Normalize velocity to 0.0–1.0
+        vel_scale = np.clip(velocity / 127.0, 0.0, 1.0)
+
+        if drum_type == 'kick':
+            envelope = np.exp(-40 * t)
+            waveform = 0.8 * envelope * np.sin(2 * np.pi * 80 * t * (1 - 0.5 * t))
+#         elif drum_type == 'snare':
+#             noise = np.random.randn(length)
+#             envelope = np.exp(-20 * np.linspace(0, 1, length))
+#             waveform = 0.5 * noise * envelope
+        elif drum_type == 'snare':
+            # White noise for sizzle
+            noise = np.random.randn(length)
+            
+            # Add a short tonal hit (snare body)
+            freq = 200  # Hz for snare body tone
+            tone = np.sin(2 * np.pi * freq * t) * np.exp(-30 * t)
+
+            # Envelope for noise tail
+            envelope = np.exp(-20 * np.linspace(0, 1, length))
+            sizzle = noise * envelope
+
+            # Optional: bandpass filter the sizzle to focus the snare hiss (1kHz–5kHz)
+            def bandpass(sig, lowcut, highcut, sr, order=2):
+                #from scipy.signal import butter, lfilter
+                nyq = sr / 2.0
+                low = lowcut / nyq
+                high = highcut / nyq
+                b, a = butter(order, [low, high], btype='band')
+                return lfilter(b, a, sig)
+
+            sizzle = bandpass(sizzle, 1000, 5000, sample_rate)
+
+            # Mix tone and sizzle
+            waveform = 0.4 * sizzle + 0.3 * tone
+        elif drum_type == 'hat':
+            noise = np.random.randn(length)
+            envelope = np.exp(-50 * np.linspace(0, 1, length))
+            waveform = 0.3 * noise * envelope
+        else:
+            waveform = np.zeros(length)
+            
+            # Apply velocity-based scaling
+        waveform *= vel_scale
+
+        # Apply panning to stereo
+        left = waveform * np.cos(pan * np.pi / 2)
+        right = waveform * np.sin(pan * np.pi / 2)
+        return np.stack([left, right], axis=1).astype(np.float32)
+
 
     @staticmethod
     def generate_church_organ(freq, duration, sr=44100, tremulant=True):

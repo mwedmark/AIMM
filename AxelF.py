@@ -1,7 +1,7 @@
 import numpy as np
 import wave
 import winsound
-import math
+#import math
 import random
 from scipy.signal import butter, lfilter
 from mido import MidiFile
@@ -25,6 +25,12 @@ channel_pan = {}
 channel_volume = defaultdict(lambda: 1.0)  # Default volume is 1.0 (full)
 channel_expression = defaultdict(lambda: 1.0)  # Default expression is 1.0 (velocity)
 
+DRUM_MIDI_MAP = {
+    35: 'kick', 36: 'kick',
+    38: 'snare', 40: 'snare',
+    42: 'hat', 44: 'hat', 46: 'hat'
+}
+
 #channel_pan[0] = 0.5  # Left
 ##channel_pan[1] = 0.8  # Right
 ##channel_pan[2] = 0.8  # Right
@@ -35,7 +41,7 @@ channel_expression = defaultdict(lambda: 1.0)  # Default expression is 1.0 (velo
 # Default if not set: randomly assign pan per channel
 def get_channel_pan(channel):
     if channel not in channel_pan:
-        channel_pan[channel] = round(random.uniform(0.1, 0.9), 2)
+        channel_pan[channel] = round(random.uniform(0.3, 0.7), 2)
     return channel_pan[channel]
 
 def soft_limiter(signal, threshold=0.9):
@@ -109,6 +115,26 @@ def normalize_events(events):
                 })
     return normalized
 
+def midi_extract_drums(midi_path, allowed_notes=None):
+    mid = MidiFile(midi_path)
+    events = []
+    time = 0.0
+    active_notes = {}
+
+    for msg in mid:
+        time += msg.time
+        if msg.type == 'note_on' and msg.channel == 9 and msg.velocity > 0:
+            drum_type = DRUM_MIDI_MAP.get(msg.note)
+            if drum_type:
+                events.append({
+                    'notes': [drum_type],
+                    'start_beats': time * BEATS_PER_SECOND,
+                    'duration_beats': 0.1,  # short fixed duration for drums
+                    'channel': 9
+                })
+    return events
+
+
 def midi_to_events(midi_path, allowed_channels=None):
     mid = MidiFile(midi_path)
     events = []
@@ -118,6 +144,8 @@ def midi_to_events(midi_path, allowed_channels=None):
 
     for msg in mid:
         time += msg.time
+        if msg.type == 'note_on' and msg.channel == 9 and msg.velocity > 0:
+            continue
         if not msg.is_meta and hasattr(msg, 'channel'):
             if allowed_channels is not None and msg.channel not in allowed_channels:
                 continue
@@ -132,8 +160,11 @@ def midi_to_events(midi_path, allowed_channels=None):
             #mess = f"Volume Set:{msg.channel+1}:{channel_volume[msg.channel]}"
             #print(mess)
             # MIDI volume is 0–127 → Normalize to 0.0–1.0
-        elif msg.type == 'control_change' and msg.control == 11:
-            channel_expression[msg.channel] = msg.value / 127.0
+        elif msg.type == 'control_change':
+            if msg.control == 7:  # Volume MSB
+                channel_volume[msg.channel] = msg.value / 127.0
+            elif msg.control == 10:  # PAN
+                channel_pan[msg.channel] = msg.value / 127.0    
         elif msg.type == 'note_on' and msg.velocity > 0:
             active_notes[(msg.note, msg.channel)] = time
         elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
@@ -188,50 +219,6 @@ def generate_wave(freq, duration, sr, wave_type='square', a_sec=0.02, d_sec=0.05
         shaped = lowpass_filter(shaped, cutoff=8000, sr=sr)
 
     return shaped.astype(np.float32)
-
-##def generate_wave_steeldrum(freq, duration, sr, wave_type='triangle', a_sec=0.005, d_sec=0.12, s_level=0.3, r_sec=0.25):
-##    samples = int(sr * duration)
-##    t = np.linspace(0, duration, samples, False)
-##
-##    base = np.sin(2 * np.pi * freq * t)  # Fundamental
-##    overtone1 = 0.2 * np.sin(2 * np.pi * freq * 2.01 * t)  # Slight detuned 2nd harmonic
-##    overtone2 = 0.1 * np.sin(2 * np.pi * freq * 3.9 * t)    # Almost 4th harmonic
-##
-##    wave = base + overtone1 + overtone2
-##    wave /= np.max(np.abs(wave))  # normalize
-##
-##    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
-##    return (wave * envelope).astype(np.float32)
-##
-##def generate_wave_piano(freq, duration, sr, a_sec=0.005, d_sec=0.2, s_level=0.4, r_sec=0.4):
-##    samples = int(sr * duration)
-##    t = np.linspace(0, duration, samples, False)
-##
-##    # Gentle harmonic mix to avoid buildup
-##    wave = (
-##        0.8 * np.sin(2 * np.pi * freq * t) +              # Fundamental
-##        0.4 * np.sin(2 * np.pi * freq * 2 * t) +          # 2nd harmonic
-##        0.25 * np.sin(2 * np.pi * freq * 3 * t) +         # 3rd harmonic
-##        0.15 * np.sin(2 * np.pi * freq * 4.01 * t) +      # Slightly detuned 4th harmonic
-##        0.1 * np.sin(2 * np.pi * freq * 5.01 * t)         # Slightly detuned 5th harmonic
-##    )
-##
-##    # Natural string damping
-##    damping = np.exp(-3.5 * t)
-##    wave *= damping
-##
-##    # Normalize per note
-##    peak = np.max(np.abs(wave))
-##    if peak > 0:
-##        wave = wave / peak
-##
-##    # ADSR
-##    envelope = adsr_envelope(samples, sr, a_sec, d_sec, s_level, r_sec)
-##    shaped = wave * envelope
-##
-##    # Optional soft limiting (tame any slight overshoots)
-##    shaped = np.tanh(shaped * 1) #1.5 be default
-##    return shaped.astype(np.float32)
 
 def adsr_envelope(total_samples, sr, a_sec=0.02, d_sec=0.05, s_level=0.4, r_sec=0.08):
     a_len = int(a_sec * sr)
@@ -294,6 +281,10 @@ def synthesize_normalized_track(events, note_freqs, sample_rate, seconds_per_bea
     used_channels = set()
 
     for event in events:
+        
+        pan = event.get('pan')
+        if pan is not None:
+            channel_pan[channel] = pan  # Override stored channel pan
         program = event.get('program', DEFAULT_INSTRUMENT)
         channel = event.get('channel', 0)
         used_channels.add(channel)
@@ -307,14 +298,14 @@ def synthesize_normalized_track(events, note_freqs, sample_rate, seconds_per_bea
             start_sample = int(event['start_beats'] * seconds_per_beat * sample_rate)
             duration = event['duration_beats'] * seconds_per_beat
             if program == 0:  # Acoustic Grand Piano
-                wave = MidiInstruments.generate_wave_piano(freq, duration, sample_rate, a, d, s, r)
+                wave = MidiInstruments.generate_wave_piano(freq, duration, sample_rate)
             #elif program == 19: # Church Organ
             #    wave = MidiInstruments.generate_church_organ(freq, duration, sample_rate)
             elif program == 24: # Acoustic Guitar (nylon)
                 #wave = MidiInstruments.generate_karplus_strong_guitar(freq, duration, sample_rate)
-                wave = MidiInstruments.generate_wave_nylon_guitar(freq, duration, sample_rate, a, d, s, r)
+                wave = MidiInstruments.generate_wave_nylon_guitar(freq, duration, sample_rate)
             elif program == 114: # Steel Drums
-                wave = MidiInstruments.generate_wave_steeldrum(freq, duration, sample_rate, a, d, s, r)
+                wave = MidiInstruments.generate_wave_steeldrum(freq, duration, sample_rate)
             else:
                 wave = generate_wave(freq, duration, sample_rate, waveform, a, d, s, r)
             
@@ -346,28 +337,6 @@ def lowpass_filter(signal, cutoff=8000, sr=44100):
 
 
 # ================== Drum Generator ==================
-def synth_drum_stereo(drum_type, duration, pan=0.5, sample_rate=44100):
-    length = int(sample_rate * duration)
-    t = np.linspace(0, duration, length, False)
-
-    if drum_type == 'kick':
-        envelope = np.exp(-40 * t)
-        waveform = 0.8 * envelope * np.sin(2 * np.pi * 80 * t * (1 - 0.5 * t))
-    elif drum_type == 'snare':
-        noise = np.random.randn(length)
-        envelope = np.exp(-20 * np.linspace(0, 1, length))
-        waveform = 0.5 * noise * envelope
-    elif drum_type == 'hat':
-        noise = np.random.randn(length)
-        envelope = np.exp(-50 * np.linspace(0, 1, length))
-        waveform = 0.3 * noise * envelope
-    else:
-        waveform = np.zeros(length)
-
-    # Apply panning to stereo
-    left = waveform * np.cos(pan * np.pi / 2)
-    right = waveform * np.sin(pan * np.pi / 2)
-    return np.stack([left, right], axis=1).astype(np.float32)
 
 
 def generate_drum_track_stereo(normalized_events, seconds_per_beat, sample_rate, drum_pan_map=None):
@@ -390,8 +359,11 @@ def generate_drum_track_stereo(normalized_events, seconds_per_beat, sample_rate,
         key = (drum_type, e.get('channel', 9))  # default to channel 9 for drums
         pan = drum_pan_map.get(key, np.random.uniform(0.3, 0.7))
         drum_pan_map[key] = pan  # persist for consistency
+        
+        velocity = e.get("velocity", 100)  # default to 100 if missing
+        wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, velocity, sample_rate)
 
-        wave = synth_drum_stereo(drum_type, duration, pan, sample_rate)
+        #wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, sample_rate)
         end_sample = start_sample + wave.shape[0]
 
         if end_sample > total_samples:
@@ -402,8 +374,6 @@ def generate_drum_track_stereo(normalized_events, seconds_per_beat, sample_rate,
     # Clip to prevent overflow
     stereo_track = np.clip(stereo_track, -1.0, 1.0)
     return stereo_track
-
-
 
 # ================== Reverb ==================
 #stereo, sample_rate,0.25,[50,113,179,271], wet=0.35, dry=0.8,lowpass_fc=5000)
@@ -455,7 +425,7 @@ def mix_voices_stereo(
     if melody_reverb:
         m = reverb_stereo(m, sr)
     if drums_reverb:
-        d = reverb_stereo(d, sr)
+        d = reverb_stereo(d, sr, wet=0.15, lowpass_fc=3000)
 
     mix = m + d
     mix = np.clip(mix, -1.0, 1.0)
@@ -476,12 +446,12 @@ bass_track = [
     ('C1', 4), ('P', 4), ('P', 16), ('A#1', 16), ('G0', 8), ('F0', 8), ('D#0', 8)
 ]
 
-drum_track = [
-    ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8),('hat', 16),('hat', 16),
-    ('kick', 8),('hat', 16), ('hat', 16),('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 4),
-    ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8), ('hat', 16),('hat', 16),
-    ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8), ('snare', 16), ('snare', 16)
-]
+# drum_track = [
+#     ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8),('hat', 16),('hat', 16),
+#     ('kick', 8),('hat', 16), ('hat', 16),('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 4),
+#     ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8), ('hat', 16),('hat', 16),
+#     ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8), ('snare', 16), ('snare', 16)
+# ]
 
 ##melody_track = [
 ##    ('C3', 4),
@@ -496,13 +466,20 @@ drum_track = [
 ##    {'notes': ['G1'], 'start': [4], 'length': 4}
 ##]
 ##
-##drum_track = [
-##    ('kick', 4), ('hat', 8), ('snare', 4),
-##    {'notes': 'hat', 'start': [2], 'length': 8},
-##    {'notes': 'kick', 'start': [4], 'length': 4}
-##]
+# drum_track = [
+#     ('kick', 4), ('hat', 8), ('snare', 4),
+#     {'notes': 'hat', 'start': [2], 'length': 8},
+#     {'notes': 'kick', 'start': [4], 'length': 4}
+# ]
 
-midi_events = midi_to_events("UnderTheSea.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+
+# drum_track = generate_drum_track_stereo(
+#     drum_events, 1 / BEATS_PER_SECOND, sample_rate
+# )
+
+
+#midi_events = midi_to_events("UnderTheSea.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+midi_events = midi_to_events("IntoTheGroove.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
 #midi_events = midi_to_events("classic.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
 #midi_events = midi_to_events("Beethoven_Bagatelle_No1_Op119.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
 #midi_events = midi_to_events("OrganConcerto.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
@@ -523,8 +500,9 @@ for event in all_events:
 melody_events_by_channel = group_events_by_channel(normalized_melody)
 melody_stereo = synthesize_and_pan_channels(melody_events_by_channel, note_freqs, sample_rate, 1 / BEATS_PER_SECOND)
 
-normalized_drums = normalize_events(drum_track)
-drum_stereo = generate_drum_track_stereo(normalized_drums, 1 / BEATS_PER_SECOND, sample_rate)
+drum_track = midi_extract_drums("IntoTheGroove.mid")
+#normalized_drums = normalize_events(drum_track)
+drum_stereo = generate_drum_track_stereo(drum_track, 1 / BEATS_PER_SECOND, sample_rate)
 
 # Pad to same length and mix
 #max_len = max(len(melody_stereo), len(drum_stereo))
@@ -535,7 +513,7 @@ drum_stereo = generate_drum_track_stereo(normalized_drums, 1 / BEATS_PER_SECOND,
 stereo = mix_voices_stereo(
     melody_stereo, drum_stereo, sr=sample_rate,
     melody_volume=0.3, melody_reverb=True,
-    drums_volume=0, drums_reverb=False
+    drums_volume=0.05, drums_reverb=True
 )
 
 # ================== Final WAV Output ==================
