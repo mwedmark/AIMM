@@ -1,3 +1,4 @@
+#waveform, a, d, s, r, mix_vol, name
 INSTRUMENT_PRESETS = {
     0:   ('triangle', 0.01, 0.10, 0.5, 0.2, 0.2, "Acoustic Grand Piano"),
     1:   ('triangle', 0.008, 0.12, 0.4, 0.2, 0.3, "Bright Acoustic Piano"),
@@ -67,9 +68,9 @@ INSTRUMENT_PRESETS = {
     58:  ('saw',      0.010, 0.12, 0.5, 0.3, 0.4, "Tuba"),
     59:  ('square',   0.010, 0.10, 0.3, 0.1, 0.3, "Muted Trumpet"),
     60:  ('saw',      0.010, 0.15, 0.6, 0.3, 0.4, "French Horn"),
-    61:  ('triangle', 0.020, 0.20, 0.5, 0.3, 0.4, "Brass Section"),
-    62:  ('square',   0.010, 0.10, 0.3, 0.1, 0.3, "Synth Brass 1"),
-    63:  ('square',   0.010, 0.10, 0.3, 0.1, 0.3, "Synth Brass 2"),
+    61:  ('triangle', 0.020, 0.20, 0.5, 0.3, 0.2, "Brass Section"),
+    62:  ('square',   0.010, 0.10, 0.3, 0.1, 0.2, "Synth Brass 1"),
+    63:  ('square',   0.010, 0.10, 0.3, 0.1, 0.2, "Synth Brass 2"),
 
     64:  ('triangle', 0.015, 0.12, 0.3, 0.2, 0.3, "Soprano Sax"),
     65:  ('triangle', 0.015, 0.12, 0.3, 0.2, 0.3, "Alto Sax"),
@@ -91,7 +92,7 @@ INSTRUMENT_PRESETS = {
 
     80:  ('square',   0.010, 0.10, 0.3, 0.2, 0.3, "Lead 1 (square)"),
     81:  ('saw',      0.010, 0.12, 0.4, 0.3, 0.4, "Lead 2 (sawtooth)"),
-    82:  ('square',   0.010, 0.15, 0.4, 0.3, 0.5, "Lead 3 (calliope)"),
+    82:  ('square',   0.010, 0.15, 0.4, 0.3, 0.3, "Lead 3 (calliope)"),
     83:  ('square',   0.010, 0.12, 0.3, 0.2, 0.3, "Lead 4 (chiff)"),
     84:  ('square',   0.010, 0.12, 0.3, 0.2, 0.3, "Lead 5 (charang)"),
     85:  ('square',   0.010, 0.12, 0.3, 0.3, 0.3, "Lead 6 (voice)"),
@@ -99,7 +100,7 @@ INSTRUMENT_PRESETS = {
     87:  ('square',   0.010, 0.12, 0.3, 0.3, 0.3, "Lead 8 (bass + lead)"),
 
     88:  ('square',   0.010, 0.15, 0.3, 0.3, 0.4, "Pad 1 (new age)"),
-    89:  ('square',   0.010, 0.15, 0.3, 0.3, 0.4, "Pad 2 (warm)"),
+    89:  ('square',   0.010, 0.15, 0.3, 0.3, 0.2, "Pad 2 (warm)"),
     90:  ('saw',      0.015, 0.15, 0.4, 0.3, 0.4, "Pad 3 (polysynth)"),
     91:  ('saw',      0.015, 0.15, 0.4, 0.3, 0.4, "Pad 4 (choir)"),
     92:  ('square',   0.010, 0.15, 0.3, 0.2, 0.3, "Pad 5 (bowed)"),

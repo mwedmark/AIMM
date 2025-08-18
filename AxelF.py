@@ -1,7 +1,9 @@
 import numpy as np
 import wave
 import winsound
-#import math
+#import simpleaudio
+import sys
+import os
 import random
 from scipy.signal import butter, lfilter
 from mido import MidiFile
@@ -14,6 +16,8 @@ TEMPO_BPM = 110
 BEATS_PER_SECOND = TEMPO_BPM / 60
 
 DEFAULT_INSTRUMENT = 0  # fallback if no program_change
+
+USE_SAMPLED_DRUMS = True  # switch here
 
 #waveform_type_melody = 'triangle'
 #waveform_type_bass = 'triangle'
@@ -130,7 +134,8 @@ def midi_extract_drums(midi_path, allowed_notes=None):
                     'notes': [drum_type],
                     'start_beats': time * BEATS_PER_SECOND,
                     'duration_beats': 0.1,  # short fixed duration for drums
-                    'channel': 9
+                    'channel': 9,
+                    'midinote': msg.note
                 })
     return events
 
@@ -338,11 +343,14 @@ def lowpass_filter(signal, cutoff=8000, sr=44100):
 
 # ================== Drum Generator ==================
 
-
 def generate_drum_track_stereo(normalized_events, seconds_per_beat, sample_rate, drum_pan_map=None):
     if not normalized_events:
         return np.zeros((1, 2), dtype=np.float32)  # fallback for empty
 
+    if USE_SAMPLED_DRUMS:
+        from sampled_drums import SampledDrums
+        drumkit = SampledDrums(sample_dir="samples", sample_rate=sample_rate)
+    
     end_time = max(e['start_beats'] + e['duration_beats'] for e in normalized_events)
     total_samples = int(end_time * seconds_per_beat * sample_rate)
     stereo_track = np.zeros((total_samples, 2), dtype=np.float32)
@@ -357,13 +365,21 @@ def generate_drum_track_stereo(normalized_events, seconds_per_beat, sample_rate,
 
         # Get or assign panning
         key = (drum_type, e.get('channel', 9))  # default to channel 9 for drums
+        midinote = e.get('midinote', 9)
         pan = drum_pan_map.get(key, np.random.uniform(0.3, 0.7))
         drum_pan_map[key] = pan  # persist for consistency
         
         velocity = e.get("velocity", 100)  # default to 100 if missing
-        wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, velocity, sample_rate)
 
+        if USE_SAMPLED_DRUMS:
+            wave = drumkit.trigger((midinote), velocity, pan)
+            #print((midinote))
+        else:
+            wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, velocity, sample_rate)
+
+        #wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, velocity, sample_rate)
         #wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, sample_rate)
+            
         end_sample = start_sample + wave.shape[0]
 
         if end_sample > total_samples:
@@ -446,96 +462,87 @@ bass_track = [
     ('C1', 4), ('P', 4), ('P', 16), ('A#1', 16), ('G0', 8), ('F0', 8), ('D#0', 8)
 ]
 
-# drum_track = [
-#     ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8),('hat', 16),('hat', 16),
-#     ('kick', 8),('hat', 16), ('hat', 16),('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 4),
-#     ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8), ('hat', 16),('hat', 16),
-#     ('kick', 8),('hat', 16),('hat', 16), ('snare', 6), ('kick', 8), ('kick', 16), ('kick', 8), ('snare', 8), ('snare', 16), ('snare', 16)
-# ]
 
-##melody_track = [
-##    ('C3', 4),
-##    (['E3', 'G3'], 4),
-##    {'notes': ['C4'], 'start': [4, 4], 'length': 8},
-##    {'notes': ['F3', 'A3'], 'start': 2, 'length': 4}
-##]
-##
-##bass_track = [
-##    ('C1', 4),
-##    ('F1', 4),
-##    {'notes': ['G1'], 'start': [4], 'length': 4}
-##]
-##
-# drum_track = [
-#     ('kick', 4), ('hat', 8), ('snare', 4),
-#     {'notes': 'hat', 'start': [2], 'length': 8},
-#     {'notes': 'kick', 'start': [4], 'length': 4}
-# ]
+def main():
+    if len(sys.argv) < 2:
+        #print("Usage: drag and drop a MIDI file onto this script.")
+        midi_path = "UnderTheSea.mid"
+        #sys.exit(1)
+    else:
+        midi_path = sys.argv[1]
+        
+    if not os.path.exists(midi_path):
+        print(f"File not found: {midi_path}")
+        sys.exit(1)
 
+    print(f"Playing MIDI: {midi_path}")
 
-# drum_track = generate_drum_track_stereo(
-#     drum_events, 1 / BEATS_PER_SECOND, sample_rate
-# )
+    midi_events = midi_to_events(midi_path, allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    #midi_events = midi_to_events("UnderTheSea.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    #midi_events = midi_to_events("IntoTheGroove.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    #midi_events = midi_to_events("classic.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    #midi_events = midi_to_events("Beethoven_Bagatelle_No1_Op119.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    #midi_events = midi_to_events("OrganConcerto.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    #midi_events = midi_to_events("mendelssohn-wedding-march.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+    normalized_melody = midi_events
+    #normalized_melody = normalize_events(melody_track)
 
+    #normalized_bass = normalize_events(bass_track)
 
-#midi_events = midi_to_events("UnderTheSea.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-midi_events = midi_to_events("IntoTheGroove.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-#midi_events = midi_to_events("classic.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-#midi_events = midi_to_events("Beethoven_Bagatelle_No1_Op119.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-#midi_events = midi_to_events("OrganConcerto.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-#midi_events = midi_to_events("mendelssohn-wedding-march.mid", allowed_channels=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
-normalized_melody = midi_events
-#normalized_melody = normalize_events(melody_track)
+    # Update note_freqs with both string and int note support
+    note_freqs = {}
+    all_events = normalized_melody# + normalized_bass
+    for event in all_events:
+        for note in event['notes']:
+            if note not in note_freqs:
+                note_freqs[note] = get_note_frequency(note)
+                
+    melody_events_by_channel = group_events_by_channel(normalized_melody)
+    melody_stereo = synthesize_and_pan_channels(melody_events_by_channel, note_freqs, sample_rate, 1 / BEATS_PER_SECOND)
 
-#normalized_bass = normalize_events(bass_track)
+    drum_track = midi_extract_drums(midi_path)
+    #normalized_drums = normalize_events(drum_track)
+    drum_stereo = generate_drum_track_stereo(drum_track, 1 / BEATS_PER_SECOND, sample_rate)
 
-# Update note_freqs with both string and int note support
-note_freqs = {}
-all_events = normalized_melody# + normalized_bass
-for event in all_events:
-    for note in event['notes']:
-        if note not in note_freqs:
-            note_freqs[note] = get_note_frequency(note)
-            
-melody_events_by_channel = group_events_by_channel(normalized_melody)
-melody_stereo = synthesize_and_pan_channels(melody_events_by_channel, note_freqs, sample_rate, 1 / BEATS_PER_SECOND)
+    # Pad to same length and mix
+    #max_len = max(len(melody_stereo), len(drum_stereo))
+    #melody_stereo = np.pad(melody_stereo, (0, max_len - len(melody_stereo)))
+    #drum_stereo = np.pad(drum_stereo, (0, max_len - len(drum_stereo)))
 
-drum_track = midi_extract_drums("IntoTheGroove.mid")
-#normalized_drums = normalize_events(drum_track)
-drum_stereo = generate_drum_track_stereo(drum_track, 1 / BEATS_PER_SECOND, sample_rate)
+    # Mix stereo
+    stereo = mix_voices_stereo(
+        melody_stereo, drum_stereo, sr=sample_rate,
+        melody_volume=0.3, melody_reverb=True,
+        #drums_volume=0.05, drums_reverb=True,
+        drums_volume=0.01, drums_reverb=False
+    )
 
-# Pad to same length and mix
-#max_len = max(len(melody_stereo), len(drum_stereo))
-#melody_stereo = np.pad(melody_stereo, (0, max_len - len(melody_stereo)))
-#drum_stereo = np.pad(drum_stereo, (0, max_len - len(drum_stereo)))
+    # ================== Final WAV Output ==================
+    # Normalize
+    max_val = np.max(np.abs(stereo))
+    if max_val > 1.0:
+        stereo = stereo / max_val
 
-# Mix stereo
-stereo = mix_voices_stereo(
-    melody_stereo, drum_stereo, sr=sample_rate,
-    melody_volume=0.3, melody_reverb=True,
-    drums_volume=0.05, drums_reverb=True
-)
+    # Apply soft limiter and normalize RMS
+    stereo = soft_limiter_agg(stereo)
+    stereo = normalize_rms(stereo)
 
-# ================== Final WAV Output ==================
-# Normalize
-max_val = np.max(np.abs(stereo))
-if max_val > 1.0:
-    stereo = stereo / max_val
+    stereo = np.clip(stereo, -1.0, 1.0)
 
-# Apply soft limiter and normalize RMS
-stereo = soft_limiter_agg(stereo)
-stereo = normalize_rms(stereo)
+    # Save to WAV
+    filename = "polyphonic_output.wav"
+    with wave.open(filename, 'w') as wav_file:
+        wav_file.setnchannels(2)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        int_samples = (stereo * 32767).astype(np.int16)
+        wav_file.writeframes(int_samples.tobytes())
 
-stereo = np.clip(stereo, -1.0, 1.0)
+    # Play
+    winsound.PlaySound(filename, winsound.SND_FILENAME | winsound.SND_ASYNC)
+    input("Press ENTER to stop playback...\n")
+    winsound.PlaySound(None, winsound.SND_PURGE)
+        
 
-# Save to WAV
-filename = "polyphonic_output.wav"
-with wave.open(filename, 'w') as wav_file:
-    wav_file.setnchannels(2)
-    wav_file.setsampwidth(2)
-    wav_file.setframerate(sample_rate)
-    int_samples = (stereo * 32767).astype(np.int16)
-    wav_file.writeframes(int_samples.tobytes())
-
-# Play
-winsound.PlaySound(filename, winsound.SND_FILENAME)
+if __name__ == "__main__":
+    main()
