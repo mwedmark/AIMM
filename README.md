@@ -15,12 +15,12 @@ Projecy currently has the following features:
     - First an array with settings for: A/D/S/R/Waveform/Reverb was created for each of the 128 MIDI instruments
     - Next some specific instrument were introduced with their own methods that gives more control to which kind of algorithm is best suited for each instrument.
     - Currently the specific instruments are: Grand Piano, Stel Drums and Acoustic Guitar
- 
+ - Added MIDI drum spoort, both simple synth drums and 2 separate sample-based drum kits
+ - 
 TODO:
   - ** Make it possible to set master Volume for each instrument to be able to mix everything correctly (remove Reverb setting per instrument should be mapped to MIDI channel)
   - ** Map Panning to MIDI signals for each MIDI-channel
   - ** Map Reverb settings to that MIDI effect for ecah channel
-  - ** Implement MIDI Drums
   - Add support for Wavetable Synthesis. Either simple format with its own fileformat or direct support for SF2 files.
   - Add more effects, start with Chorus and map that effect against MIDI chorus.
   - Add Delay effect
