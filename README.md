@@ -1,6 +1,6 @@
 Projecy currently has the following features:
 
-- Single waveform LFO with waveforms: sine/saw/triangle/square to choose from.
+- Simple waveform Oscillator with waveforms: sine/saw/triangle/square to choose from. Seme more advanced sounds uses multiple osc.
 - Pre-rendered Wave files, tha renders to disk and then is played in non-realtime.
 - Several different format for music:
   - Direct input using a Python array of tones. I had 3 different hand-coded tracks initially (base/melody/drums) and only a single monophony on each channel. Each tone is strung together in order.
