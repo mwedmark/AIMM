@@ -1,6 +1,6 @@
 Projecy currently has the following features:
 
-- Single waveform LFO with waveforms: sine/saw/triangle/square to choose from.
+- Simple waveform Oscillator with waveforms: sine/saw/triangle/square to choose from. Seme more advanced sounds uses multiple osc.
 - Pre-rendered Wave files, tha renders to disk and then is played in non-realtime.
 - Several different format for music:
   - Direct input using a Python array of tones. I had 3 different hand-coded tracks initially (base/melody/drums) and only a single monophony on each channel. Each tone is strung together in order.
@@ -15,12 +15,13 @@ Projecy currently has the following features:
     - First an array with settings for: A/D/S/R/Waveform/Reverb was created for each of the 128 MIDI instruments
     - Next some specific instrument were introduced with their own methods that gives more control to which kind of algorithm is best suited for each instrument.
     - Currently the specific instruments are: Grand Piano, Stel Drums and Acoustic Guitar
- 
+ - Added MIDI drum support, both simple synth drums and 2 separate sample-based drum kits. 
+ - Added Sample player as part of drums. Currently not supporting playing back at different speeds.
+ - Possible to send in MIDI file as inparameter to player
 TODO:
   - ** Make it possible to set master Volume for each instrument to be able to mix everything correctly (remove Reverb setting per instrument should be mapped to MIDI channel)
   - ** Map Panning to MIDI signals for each MIDI-channel
   - ** Map Reverb settings to that MIDI effect for ecah channel
-  - ** Implement MIDI Drums
   - Add support for Wavetable Synthesis. Either simple format with its own fileformat or direct support for SF2 files.
   - Add more effects, start with Chorus and map that effect against MIDI chorus.
   - Add Delay effect
