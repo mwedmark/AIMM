@@ -37,6 +37,28 @@ class SampledDrums:
             57: "Crash Cymbal 2.wav",    # 
             58: "Vibraslap.wav",    # 
             59: "Ride Cymbal 2.wav",    #
+            60: "Hi Bongo.wav",
+            61: "Low Bongo.wav",
+            62: "Mute Hi Conga.wav",
+            63: "Open Hi Conga.wav",
+            64: "Low Conga.wav",
+            65: "High Timbale.wav",
+            66: "Low Timbale.wav",
+            67: "High Agogo.wav",
+            68: "Low Agogo.wav",
+            69: "Cabasa.wav",
+            70: "Maracas.wav",
+            71: "Short Whistle.wav",
+            72: "Long Whistle.wav",
+            73: "Short Guiro.wav",
+            74: "Long Guiro.wav",
+            75: "Claves.wav",
+            76: "Hi Wood Block.wav",
+            77: "Low Wood Block.wav",
+            78: "Mute Cuica.wav",
+            79: "Open Cuica.wav",
+            80: "Mute Triangle.wav",
+            81: "Open Triangle.wav",
         }
 
         for note, filename in self.note_map.items():

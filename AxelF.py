@@ -514,7 +514,7 @@ def main():
         melody_stereo, drum_stereo, sr=sample_rate,
         melody_volume=0.3, melody_reverb=True,
         #drums_volume=0.05, drums_reverb=True,
-        drums_volume=0.01, drums_reverb=False
+        drums_volume=0.005, drums_reverb=False
     )
 
     # ================== Final WAV Output ==================
