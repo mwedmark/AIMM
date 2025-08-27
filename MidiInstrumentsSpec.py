@@ -193,21 +193,18 @@ class MidiInstruments:
     def synth_drum_stereo(drum_type, duration, pan=0.5, velocity=100, sample_rate=44100):
         length = int(sample_rate * duration)
         t = np.linspace(0, duration, length, False)
-        
-         # Normalize velocity to 0.0–1.0
-        vel_scale = np.clip(velocity / 127.0, 0.0, 1.0)
+
+        # Velocity scale (MIDI 0–127 → 0–1)
+        vel_scale = velocity / 127.0
 
         if drum_type == 'kick':
             envelope = np.exp(-40 * t)
             waveform = 0.8 * envelope * np.sin(2 * np.pi * 80 * t * (1 - 0.5 * t))
-#         elif drum_type == 'snare':
-#             noise = np.random.randn(length)
-#             envelope = np.exp(-20 * np.linspace(0, 1, length))
-#             waveform = 0.5 * noise * envelope
+
         elif drum_type == 'snare':
             # White noise for sizzle
             noise = np.random.randn(length)
-            
+
             # Add a short tonal hit (snare body)
             freq = 200  # Hz for snare body tone
             tone = np.sin(2 * np.pi * freq * t) * np.exp(-30 * t)
@@ -216,9 +213,9 @@ class MidiInstruments:
             envelope = np.exp(-20 * np.linspace(0, 1, length))
             sizzle = noise * envelope
 
-            # Optional: bandpass filter the sizzle to focus the snare hiss (1kHz–5kHz)
+            # Bandpass filter the sizzle (1kHz–5kHz) to focus the snare hiss
+            from scipy.signal import butter, lfilter
             def bandpass(sig, lowcut, highcut, sr, order=2):
-                #from scipy.signal import butter, lfilter
                 nyq = sr / 2.0
                 low = lowcut / nyq
                 high = highcut / nyq
@@ -229,20 +226,76 @@ class MidiInstruments:
 
             # Mix tone and sizzle
             waveform = 0.4 * sizzle + 0.3 * tone
+
         elif drum_type == 'hat':
             noise = np.random.randn(length)
-            envelope = np.exp(-50 * np.linspace(0, 1, length))
+            envelope = np.exp(-80 * np.linspace(0, 1, length))  # tighter hat
             waveform = 0.3 * noise * envelope
+
         else:
             waveform = np.zeros(length)
-            
-            # Apply velocity-based scaling
+
+        # Apply velocity scaling
         waveform *= vel_scale
 
-        # Apply panning to stereo
+        # Stereo panning
         left = waveform * np.cos(pan * np.pi / 2)
         right = waveform * np.sin(pan * np.pi / 2)
         return np.stack([left, right], axis=1).astype(np.float32)
+
+##    def synth_drum_stereo2(drum_type, duration, pan=0.5, velocity=100, sample_rate=44100):
+##        length = int(sample_rate * duration)
+##        t = np.linspace(0, duration, length, False)
+##        
+##         # Normalize velocity to 0.0–1.0
+##        vel_scale = np.clip(velocity / 127.0, 0.0, 1.0)
+##
+##        if drum_type == 'kick':
+##            envelope = np.exp(-40 * t)
+##            waveform = 0.8 * envelope * np.sin(2 * np.pi * 80 * t * (1 - 0.5 * t))
+###         elif drum_type == 'snare':
+###             noise = np.random.randn(length)
+###             envelope = np.exp(-20 * np.linspace(0, 1, length))
+###             waveform = 0.5 * noise * envelope
+##        elif drum_type == 'snare':
+##            # White noise for sizzle
+##            noise = np.random.randn(length)
+##            
+##            # Add a short tonal hit (snare body)
+##            freq = 200  # Hz for snare body tone
+##            tone = np.sin(2 * np.pi * freq * t) * np.exp(-30 * t)
+##
+##            # Envelope for noise tail
+##            envelope = np.exp(-20 * np.linspace(0, 1, length))
+##            sizzle = noise * envelope
+##
+##            # Optional: bandpass filter the sizzle to focus the snare hiss (1kHz–5kHz)
+##            def bandpass(sig, lowcut, highcut, sr, order=2):
+##                #from scipy.signal import butter, lfilter
+##                nyq = sr / 2.0
+##                low = lowcut / nyq
+##                high = highcut / nyq
+##                b, a = butter(order, [low, high], btype='band')
+##                return lfilter(b, a, sig)
+##
+##            sizzle = bandpass(sizzle, 1000, 5000, sample_rate)
+##
+##            # Mix tone and sizzle
+##            waveform = 0.4 * sizzle + 0.3 * tone
+##        elif drum_type == 'hat':
+##            noise = np.random.randn(length)
+##            envelope = np.exp(-50 * np.linspace(0, 1, length))
+##            waveform = 0.3 * noise * envelope
+##        else:
+##            waveform = np.zeros(length)
+##            
+##            # Apply velocity-based scaling
+##        waveform *= vel_scale
+##
+##        # Apply panning to stereo
+##        left = waveform * np.cos(pan * np.pi / 2)
+##        right = waveform * np.sin(pan * np.pi / 2)
+##        return np.stack([left, right], axis=1).astype(np.float32)
 
 
     @staticmethod

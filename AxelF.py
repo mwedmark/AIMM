@@ -17,7 +17,7 @@ BEATS_PER_SECOND = TEMPO_BPM / 60
 
 DEFAULT_INSTRUMENT = 0  # fallback if no program_change
 
-USE_SAMPLED_DRUMS = True  # switch here
+USE_SAMPLED_DRUMS = False  # switch here
 
 #waveform_type_melody = 'triangle'
 #waveform_type_bass = 'triangle'
@@ -513,8 +513,8 @@ def main():
     stereo = mix_voices_stereo(
         melody_stereo, drum_stereo, sr=sample_rate,
         melody_volume=0.3, melody_reverb=True,
-        #drums_volume=0.05, drums_reverb=True,
-        drums_volume=0.005, drums_reverb=False
+        drums_volume=0.05, drums_reverb=True,
+        #drums_volume=0.005, drums_reverb=True
     )
 
     # ================== Final WAV Output ==================
