@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="034e0c0c-e90c-4784-8ac7-a57b0d915b4a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.AIMM/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.AIMM/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.AIMM/.idea/indexLayout.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.AIMM/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Africa.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AxelF.py" beforeDir="false" afterPath="$PROJECT_DIR$/AxelF.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CallMeAl.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Eine-Kleine-Nachtmusik1.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/EineKleineNachtmusik.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/HoldTheLine.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Hold_The_Line.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IntoTheGroove.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Midi2Muray.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Rosanna.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SeparatePiano.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/UnderTheSea.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/beethoven_opus10_2_format0.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/classic.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/piano_left_right.mid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/polyphonic_output.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/testpan.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vivaldi_4_stagioni_primavera.mid" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="31x6rMIdpTBGoRXkwtUQeiSmbgI" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.Run AIMM.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="Run AIMM" type="PythonConfigurationType" factoryName="Python">
+      <module name="rider.module" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.12" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="AxelF.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="034e0c0c-e90c-4784-8ac7-a57b0d915b4a" name="Changes" comment="" />
+      <created>1756453575013</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1756453575013</updated>
+      <workItem from="1756453578466" duration="59000" />
+      <workItem from="1756453728122" duration="1737000" />
+      <workItem from="1756469109329" duration="2182000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.OperationCanceledException" breakIfHandledByOtherCode="false" displayValue="System.OperationCanceledException" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.Tasks.TaskCanceledException" breakIfHandledByOtherCode="false" displayValue="System.Threading.Tasks.TaskCanceledException" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
+          <option name="timeStamp" value="3" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
