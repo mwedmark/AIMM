@@ -14,7 +14,7 @@ Projecy currently has the following features:
 - MIDI instruments:
     - First an array with settings for: A/D/S/R/Waveform/Reverb was created for each of the 128 MIDI instruments
     - Next some specific instrument were introduced with their own methods that gives more control to which kind of algorithm is best suited for each instrument.
-    - Currently the specific instruments are: Grand Piano, Stel Drums and Acoustic Guitar
+    - Currently the specific instruments are: Grand Piano, Steel Drums and Acoustic Guitar
  - Added MIDI drum support, both simple synth drums and 2 separate sample-based drum kits. 
  - Added Sample player as part of drums. Currently not supporting playing back at different speeds.
  - Possible to send in MIDI file as inparameter to player

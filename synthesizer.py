@@ -5,8 +5,9 @@ import numpy as np
 import random
 from collections import defaultdict
 from instruments import INSTRUMENT_PRESETS
-from MidiInstrumentsSpec import MidiInstruments
 from audio_processor import AudioProcessor
+from waveform_generator import WaveformGenerator
+from drum_synthesizer import DrumSynthesizer
 
 
 class Synthesizer:
@@ -25,6 +26,8 @@ class Synthesizer:
         self.use_sampled_drums = use_sampled_drums
         self.channel_pan = {}
         self.audio_processor = AudioProcessor()
+        self.waveform_generator = WaveformGenerator(sample_rate)
+        self.drum_synthesizer = DrumSynthesizer(sample_rate, use_sampled_drums)
     
     def get_channel_pan(self, channel):
         """Get or assign pan value for a channel.
@@ -39,48 +42,7 @@ class Synthesizer:
             self.channel_pan[channel] = round(random.uniform(0.3, 0.7), 2)
         return self.channel_pan[channel]
     
-    def generate_wave(self, freq, duration, wave_type='square', 
-                     a_sec=0.02, d_sec=0.05, s_level=0.4, r_sec=0.08):
-        """Generate a waveform with ADSR envelope.
-        
-        Args:
-            freq: Frequency in Hz
-            duration: Duration in seconds
-            wave_type: Type of waveform ('sine', 'square', 'triangle', 'saw')
-            a_sec: Attack time in seconds
-            d_sec: Decay time in seconds
-            s_level: Sustain level (0.0 to 1.0)
-            r_sec: Release time in seconds
-            
-        Returns:
-            Generated waveform array
-        """
-        samples = int(self.sample_rate * duration)
-        t = np.linspace(0, duration, samples, False)
 
-        if freq == 0.0:
-            return np.zeros(samples, dtype=np.float32)
-
-        if wave_type == 'sine':
-            wave = np.sin(2 * np.pi * freq * t)
-        elif wave_type == 'square':
-            wave = np.sign(np.sin(2 * np.pi * freq * t))
-        elif wave_type == 'triangle':
-            wave = 2 * np.abs(2 * (t * freq % 1) - 1) - 1
-        elif wave_type == 'saw':
-            wave = 2 * (t * freq % 1) - 1
-        else:
-            raise ValueError(f"Unknown wave_type: {wave_type}")
-
-        # Envelope
-        envelope = self.audio_processor.adsr_envelope(samples, self.sample_rate, a_sec, d_sec, s_level, r_sec)
-        shaped = wave * envelope
-
-        # Optional lowpass to reduce aliasing (especially on saw/square)
-        if wave_type in ['saw', 'square']:
-            shaped = self.audio_processor.lowpass_filter(shaped, cutoff=8000, sr=self.sample_rate)
-
-        return shaped.astype(np.float32)
     
     @staticmethod
     def group_events_by_channel(events):
@@ -139,14 +101,9 @@ class Synthesizer:
                 start_sample = int(event['start_beats'] * seconds_per_beat * self.sample_rate)
                 duration = event['duration_beats'] * seconds_per_beat
                 
-                if program == 0:  # Acoustic Grand Piano
-                    wave = MidiInstruments.generate_wave_piano(freq, duration, self.sample_rate)
-                elif program == 24:  # Acoustic Guitar (nylon)
-                    wave = MidiInstruments.generate_wave_nylon_guitar(freq, duration, self.sample_rate)
-                elif program == 114:  # Steel Drums
-                    wave = MidiInstruments.generate_wave_steeldrum(freq, duration, self.sample_rate)
-                else:
-                    wave = self.generate_wave(freq, duration, waveform, a, d, s, r)
+                wave = self.waveform_generator.generate_for_program(
+                    program, freq, duration, waveform, a, d, s, r
+                )
                 
                 wave = self.audio_processor.apply_fade_out(wave, self.sample_rate)
 
@@ -205,46 +162,9 @@ class Synthesizer:
         Returns:
             Stereo drum track array (N x 2)
         """
-        if not normalized_events:
-            return np.zeros((1, 2), dtype=np.float32)
-
-        if self.use_sampled_drums:
-            from sampled_drums import SampledDrums
-            drumkit = SampledDrums(sample_dir="samples", sample_rate=self.sample_rate)
-        
-        end_time = max(e['start_beats'] + e['duration_beats'] for e in normalized_events)
-        total_samples = int(end_time * seconds_per_beat * self.sample_rate)
-        stereo_track = np.zeros((total_samples, 2), dtype=np.float32)
-
-        if drum_pan_map is None:
-            drum_pan_map = {}
-
-        for e in normalized_events:
-            drum_type = e['notes'][0]
-            start_sample = int(e['start_beats'] * seconds_per_beat * self.sample_rate)
-            duration = e['duration_beats'] * seconds_per_beat
-
-            key = (drum_type, e.get('channel', 9))
-            midinote = e.get('midinote', 9)
-            pan = drum_pan_map.get(key, np.random.uniform(0.3, 0.7))
-            drum_pan_map[key] = pan
-            
-            velocity = e.get("velocity", 100)
-
-            if self.use_sampled_drums:
-                wave = drumkit.trigger(midinote, velocity, pan)
-            else:
-                wave = MidiInstruments.synth_drum_stereo(drum_type, duration, pan, velocity, self.sample_rate)
-                
-            end_sample = start_sample + wave.shape[0]
-
-            if end_sample > total_samples:
-                wave = wave[:total_samples - start_sample]
-
-            stereo_track[start_sample:start_sample + wave.shape[0]] += wave
-
-        stereo_track = np.clip(stereo_track, -1.0, 1.0)
-        return stereo_track
+        return self.drum_synthesizer.generate_drum_track(
+            normalized_events, seconds_per_beat, drum_pan_map
+        )
     
     def mix_voices(self, melody_stereo, drums_stereo, 
                    melody_volume=1.0, melody_reverb=True,

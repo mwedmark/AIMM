@@ -36,7 +36,7 @@ bass_track = [
 
 def main():
     if len(sys.argv) < 2:
-        midi_path = "UnderTheSea.mid"
+        midi_path = "midis/UnderTheSea.mid"
     else:
         midi_path = sys.argv[1]
         
