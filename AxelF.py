@@ -15,7 +15,7 @@ TEMPO_BPM = 110
 BEATS_PER_SECOND = TEMPO_BPM / 60
 
 DEFAULT_INSTRUMENT = 0  # fallback if no program_change
-USE_SAMPLED_DRUMS = False  # switch here
+USE_SAMPLED_DRUMS = True  # switch here
 
 # ================== Example Tracks ==================
 melody_track = [
@@ -80,8 +80,9 @@ def main():
     # Mix stereo
     stereo = synthesizer.mix_voices(
         melody_stereo, drum_stereo,
-        melody_volume=0.3, melody_reverb=True,
-        drums_volume=0.05, drums_reverb=True
+        melody_volume=0.6,  # Balanced volume
+        melody_reverb=True,
+        drums_volume=0.0008, drums_reverb=True  # Sampled drums are extremely loud, reduced significantly
     )
 
     # ================== Final WAV Output ==================
@@ -91,8 +92,13 @@ def main():
         stereo = stereo / max_val
 
     # Apply soft limiter and normalize RMS
-    stereo = audio_processor.soft_limiter_agg(stereo)
-    stereo = audio_processor.normalize_rms(stereo)
+    # For classical music, we want to avoid aggressive limiting/saturation
+    # stereo = audio_processor.soft_limiter_agg(stereo) 
+    
+    # Just normalize peak to 0.95 to avoid clipping
+    max_val = np.max(np.abs(stereo))
+    if max_val > 0:
+        stereo = stereo / max_val * 0.95
 
     stereo = np.clip(stereo, -1.0, 1.0)
 

@@ -12,8 +12,8 @@ class SampledDrums:
     def load_samples(self):
         # Map General MIDI drum notes to samples
         self.note_map = {
-            35: "Acoustic Bass Drum.wav",   # Acoustic Bass Drum
-            36: "Bass Drum 1.wav",   # Bass Drum 1
+            35: "Bass Drum 1.wav",   # Standard Kick (User preferred)
+            36: "Bass Drum 1.wav",   # Standard Kick (User preferred)
             37: "Side Stick.wav",   # Side stick
             38: "Acoustic Snare.wav",  # Acoustic Snare
             39: "hand clap.wav",  # Clap

@@ -113,7 +113,7 @@ class Synthesizer:
 
                 volume = event.get('volume', 1.0)
                 volume = max(0.0, min(1.0, volume))
-                voice_gain = 0.2
+                voice_gain = 0.04  # Very low gain to allow high polyphony without clipping
                 track[start_sample:start_sample + len(wave)] += wave * volume * voice_gain * mix_vol
 
         # If multiple channels used, average their pans
@@ -136,6 +136,12 @@ class Synthesizer:
 
         for ch, ch_events in events_by_channel.items():
             audio, _ = self.synthesize_track(ch_events, note_freqs, seconds_per_beat)
+            
+            # Normalize each channel to prevent clipping
+            max_val = np.max(np.abs(audio))
+            if max_val > 0.5:  # Only normalize if it's getting loud
+                audio = audio * (0.5 / max_val)
+            
             audio *= volume_scale
             pan = self.get_channel_pan(ch)
             left = audio * np.cos(pan * np.pi / 2)
