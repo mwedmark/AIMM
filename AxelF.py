@@ -85,6 +85,9 @@ def main():
         drums_volume=0.0008, drums_reverb=True  # Sampled drums are extremely loud, reduced significantly
     )
 
+    # stereo = audio_processor.chorus(stereo, sample_rate=sample_rate, 
+    #                              num_voices=3, wet=0.4)
+
     # ================== Final WAV Output ==================
     # Normalize
     max_val = np.max(np.abs(stereo))

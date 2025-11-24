@@ -156,3 +156,71 @@ class AudioProcessor:
         stereo_out = np.stack([out_L, out_R], axis=1)
         stereo_out = np.clip(stereo_out, -1.0, 1.0)
         return stereo_out
+    
+    @staticmethod
+    def chorus(signal, sample_rate=44100, num_voices=3, delay_ms=30, depth=0.8, 
+               rate_hz=0.5, wet=0.5, dry=1.0):
+        """Apply chorus effect to create a richer, more spacious sound.
+        
+        Args:
+            signal: Input stereo signal (N x 2)
+            sample_rate: Sample rate (default 44100)
+            num_voices: Number of chorus voices (default 3)
+            delay_ms: Base delay time in milliseconds (default 30)
+            depth: Modulation depth in milliseconds (default 0.8)
+            rate_hz: LFO rate in Hz (default 0.5)
+            wet: Wet (chorus) level (default 0.5)
+            dry: Dry (original) level (default 1.0)
+            
+        Returns:
+            Stereo signal with chorus applied
+        """
+        n_samples = len(signal)
+        t = np.arange(n_samples) / sample_rate
+        
+        # Initialize output for chorus voices
+        chorus_L = np.zeros_like(signal[:, 0], dtype=np.float32)
+        chorus_R = np.zeros_like(signal[:, 1], dtype=np.float32)
+        
+        # Create multiple chorus voices with different LFO phases
+        for voice in range(num_voices):
+            # Phase offset for each voice to create stereo width
+            phase_offset = (2 * np.pi * voice) / num_voices
+            
+            # LFO modulation for delay time
+            lfo = np.sin(2 * np.pi * rate_hz * t + phase_offset)
+            mod_delay_ms = delay_ms + depth * lfo
+            
+            # Convert to samples and ensure it's positive
+            mod_delay_samples = np.clip(mod_delay_ms * sample_rate / 1000, 0, None).astype(int)
+            
+            # Create delayed versions with varying delays
+            voice_L = np.zeros_like(signal[:, 0])
+            voice_R = np.zeros_like(signal[:, 1])
+            
+            for i in range(n_samples):
+                delay_idx = i - mod_delay_samples[i]
+                if delay_idx >= 0:
+                    voice_L[i] = signal[delay_idx, 0]
+                    voice_R[i] = signal[delay_idx, 1]
+            
+            # Add to chorus mix with slight panning variations
+            pan_L = 0.5 + 0.5 * np.cos(phase_offset)
+            pan_R = 0.5 + 0.5 * np.sin(phase_offset)
+            
+            chorus_L += voice_L * pan_L
+            chorus_R += voice_R * pan_R
+        
+        # Normalize chorus voices
+        if num_voices > 0:
+            chorus_L /= num_voices
+            chorus_R /= num_voices
+        
+        # Mix dry and wet signals
+        out_L = dry * signal[:, 0] + wet * chorus_L
+        out_R = dry * signal[:, 1] + wet * chorus_R
+        
+        # Combine and clip
+        stereo_out = np.stack([out_L, out_R], axis=1)
+        stereo_out = np.clip(stereo_out, -1.0, 1.0)
+        return stereo_out
