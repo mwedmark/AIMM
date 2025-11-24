@@ -77,12 +77,11 @@ def main():
     drum_track = midi_parser.midi_extract_drums(midi_path)
     drum_stereo = synthesizer.generate_drum_track(drum_track, 1 / BEATS_PER_SECOND)
 
-    # Mix stereo
+    # Mix stereo (effects are now applied per-channel based on MIDI CC data)
     stereo = synthesizer.mix_voices(
         melody_stereo, drum_stereo,
         melody_volume=0.6,  # Balanced volume
-        melody_reverb=True,
-        drums_volume=0.0008, drums_reverb=True  # Sampled drums are extremely loud, reduced significantly
+        drums_volume=0.0008  # Sampled drums are extremely loud, reduced significantly
     )
 
     # stereo = audio_processor.chorus(stereo, sample_rate=sample_rate, 

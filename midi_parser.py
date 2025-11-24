@@ -27,6 +27,9 @@ class MidiParser:
         self.channel_volume = defaultdict(lambda: 1.0)
         self.channel_expression = defaultdict(lambda: 1.0)
         self.channel_pan = {}
+        # MIDI standard effect controls
+        self.channel_reverb = defaultdict(lambda: 0.35)  # CC#91 - Reverb Send Level (default 35%)
+        self.channel_chorus = defaultdict(lambda: 0.0)   # CC#93 - Chorus Send Level (default off)
     
     @staticmethod
     def note_len_to_beats(n):
@@ -176,7 +179,11 @@ class MidiParser:
                 if msg.control == 7:  # Volume MSB
                     self.channel_volume[msg.channel] = msg.value / 127.0
                 elif msg.control == 10:  # PAN
-                    self.channel_pan[msg.channel] = msg.value / 127.0    
+                    self.channel_pan[msg.channel] = msg.value / 127.0
+                elif msg.control == 91:  # Reverb Send Level (Effects 1 Depth)
+                    self.channel_reverb[msg.channel] = msg.value / 127.0
+                elif msg.control == 93:  # Chorus Send Level (Effects 3 Depth)
+                    self.channel_chorus[msg.channel] = msg.value / 127.0    
             elif msg.type == 'note_on' and msg.velocity > 0:
                 active_notes[(msg.note, msg.channel)] = time
             elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
@@ -197,6 +204,8 @@ class MidiParser:
                         'duration_beats': duration * self.beats_per_second,
                         'channel': msg.channel,
                         'program': channel_program.get(msg.channel, default_instrument),
-                        'volume': final_volume
+                        'volume': final_volume,
+                        'reverb_level': self.channel_reverb[msg.channel],
+                        'chorus_level': self.channel_chorus[msg.channel]
                     })
         return events

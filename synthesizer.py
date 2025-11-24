@@ -147,6 +147,22 @@ class Synthesizer:
             left = audio * np.cos(pan * np.pi / 2)
             right = audio * np.sin(pan * np.pi / 2)
             stereo = np.stack([left, right], axis=1)
+            
+            # Extract effect levels from channel events (use first event as reference)
+            reverb_level = ch_events[0].get('reverb_level', 0.35) if ch_events else 0.35
+            chorus_level = ch_events[0].get('chorus_level', 0.0) if ch_events else 0.0
+            
+            # Apply per-channel effects based on MIDI CC data
+            if reverb_level > 0.01:  # Only apply if reverb is requested
+                stereo = self.audio_processor.reverb_stereo(
+                    stereo, self.sample_rate, wet=reverb_level
+                )
+            
+            if chorus_level > 0.01:  # Only apply if chorus is requested
+                stereo = self.audio_processor.chorus(
+                    stereo, self.sample_rate, wet=chorus_level
+                )
+            
             channel_tracks.append(stereo)
 
         max_len = max(len(st) for st in channel_tracks)
@@ -173,17 +189,17 @@ class Synthesizer:
         )
     
     def mix_voices(self, melody_stereo, drums_stereo, 
-                   melody_volume=1.0, melody_reverb=True,
-                   drums_volume=1.0, drums_reverb=False):
-        """Mix melody and drum tracks with optional reverb.
+                   melody_volume=1.0, drums_volume=1.0):
+        """Mix melody and drum tracks.
+        
+        Note: Effects (reverb/chorus) are now applied per-channel during synthesis
+        based on MIDI CC#91 and CC#93 data.
         
         Args:
-            melody_stereo: Stereo melody track
+            melody_stereo: Stereo melody track (already has effects applied)
             drums_stereo: Stereo drums track
             melody_volume: Volume scaling for melody
-            melody_reverb: Whether to apply reverb to melody
             drums_volume: Volume scaling for drums
-            drums_reverb: Whether to apply reverb to drums
             
         Returns:
             Mixed stereo audio
@@ -201,10 +217,8 @@ class Synthesizer:
         m = pad_stereo(melody_stereo) * melody_volume
         d = pad_stereo(drums_stereo) * drums_volume
 
-        if melody_reverb:
-            m = self.audio_processor.reverb_stereo(m, self.sample_rate)
-        if drums_reverb:
-            d = self.audio_processor.reverb_stereo(d, self.sample_rate, wet=0.15, lowpass_fc=3000)
+        # Apply light reverb to drums (drums don't have MIDI CC data)
+        d = self.audio_processor.reverb_stereo(d, self.sample_rate, wet=0.15, lowpass_fc=3000)
 
         mix = m + d
         mix = np.clip(mix, -1.0, 1.0)
